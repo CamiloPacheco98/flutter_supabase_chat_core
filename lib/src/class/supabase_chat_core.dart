@@ -12,10 +12,11 @@ import 'user_online_status.dart';
 class SupabaseChatCore {
   SupabaseChatCore._privateConstructor() {
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      supabaseUser = data.session?.user;
-      _currentUserOnlineStatusChannel = supabaseUser != null
-          ? getUserOnlineStatusChannel(supabaseUser!.id)
-          : null;
+      //TODO: Manage state with websocket
+      // supabaseUser = data.session?.user;
+      // _currentUserOnlineStatusChannel = supabaseUser != null
+      //     ? getUserOnlineStatusChannel(supabaseUser!.id)
+      //     : null;
     });
   }
 
@@ -31,7 +32,7 @@ class SupabaseChatCore {
 
   /// Current logged in user in Supabase. Does not update automatically.
   /// Use [Supabase.instance.client.auth.onAuthStateChange] to listen to the state changes.
-  User? supabaseUser = Supabase.instance.client.auth.currentUser;
+  User? supabaseUser;
 
   /// Returns user online status realtime channel .
   RealtimeChannel getUserOnlineStatusChannel(String uid) =>
@@ -507,5 +508,9 @@ class SupabaseChatCore {
       config.schema,
     );
     return types.User.fromJson(currentUser);
+  }
+
+  void setCurrentUser(User? currentUser) {
+    supabaseUser = currentUser;
   }
 }
