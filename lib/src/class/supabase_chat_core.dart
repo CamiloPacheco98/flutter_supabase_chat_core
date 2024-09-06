@@ -187,13 +187,14 @@ class SupabaseChatCore {
 
     final users = [types.User.fromJson(currentUser), otherUser];
 
+    final name = '${otherUser.firstName} ${otherUser.lastName}'.trim();
     // Create new room with sorted user ids array.
     final room =
         await client.schema(config.schema).from(config.roomsTableName).insert({
       'createdAt': DateTime.now().millisecondsSinceEpoch,
       'imageUrl': null,
       'metadata': metadata,
-      'name': null,
+      'name': name,
       'type': types.RoomType.direct.toShortString(),
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
       'userIds': userIds,
@@ -201,6 +202,7 @@ class SupabaseChatCore {
     }).select();
     return types.Room(
       id: room.first['id'].toString(),
+      name: name,
       metadata: metadata,
       type: types.RoomType.direct,
       users: users,
@@ -354,6 +356,66 @@ class SupabaseChatCore {
             .select()
             .order('updatedAt', ascending: false)
         : client.schema(config.schema).from(config.roomsTableName).select();
+
+    collection.then(onData);
+    client
+        .channel('${config.schema}:${config.roomsTableName}')
+        .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: config.schema,
+            table: config.roomsTableName,
+            callback: (payload) => onData([payload.newRecord]))
+        .subscribe();
+    return controller.stream;
+  }
+
+  Stream<List<types.Room>> roomsByParticipants(types.User otherUser,
+      {bool orderByUpdatedAt = true}) {
+    final su = supabaseUser;
+    if (su == null) return const Stream.empty();
+    final controller = StreamController<List<types.Room>>();
+    final roomsList = <types.Room>[];
+
+    Future<void> onData(List<Map<String, dynamic>> data) async {
+      for (var val in data) {
+        final newRoom = await processRoomRow(
+          val,
+          su,
+          client,
+          config.usersTableName,
+          config.schema,
+        );
+        final index = roomsList.indexWhere((room) => room.id == newRoom.id);
+        if (index != -1) {
+          roomsList[index] = newRoom;
+        } else {
+          roomsList.add(newRoom);
+        }
+      }
+      if (orderByUpdatedAt) {
+        roomsList.sort(
+          (a, b) => a.createdAt?.compareTo(b.createdAt ?? 0) ?? -1,
+        );
+      }
+      controller.sink.add(roomsList);
+    }
+
+    final userIds = [su.id, otherUser.id]..sort();
+
+    final collection = orderByUpdatedAt
+        ? client
+            .schema(config.schema)
+            .from(config.roomsTableName)
+            .select()
+            .eq('userIds', userIds)
+            .limit(1)
+            .order('updatedAt', ascending: false)
+        : client
+            .schema(config.schema)
+            .from(config.roomsTableName)
+            .select()
+            .eq('userIds', userIds)
+            .limit(1);
 
     collection.then(onData);
     client
