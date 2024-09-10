@@ -209,6 +209,68 @@ class SupabaseChatCore {
     );
   }
 
+  Future<types.Room> createRoomByListingID(
+      types.User otherUser, Map<String, dynamic> metadata) async {
+    final su = supabaseUser;
+
+    if (su == null) return Future.error('User does not exist');
+
+    // Sort two user ids array to always have the same array for both users,
+    // this will make it easy to find the room if exist and make one read only.
+    final userIds = [su.id, otherUser.id]..sort();
+
+    final roomQuery = await client
+        .schema(config.schema)
+        .from(config.roomsTableName)
+        .select()
+        .eq('type', types.RoomType.direct.toShortString())
+        .eq('userIds', userIds)
+        .eq('metadata->>listingId', metadata['listingId'])
+        .limit(1);
+    // Check if room already exist.
+    if (roomQuery.isNotEmpty) {
+      final room = (await processRoomsRows(
+        su,
+        client,
+        roomQuery,
+        config.usersTableName,
+        config.schema,
+      ))
+          .first;
+
+      return room;
+    }
+    final currentUser = await fetchUser(
+      client,
+      su.id,
+      config.usersTableName,
+      config.schema,
+    );
+
+    final users = [types.User.fromJson(currentUser), otherUser];
+
+    final name = '${otherUser.firstName} ${otherUser.lastName}'.trim();
+    // Create new room with sorted user ids array.
+    final room =
+        await client.schema(config.schema).from(config.roomsTableName).insert({
+      'createdAt': DateTime.now().millisecondsSinceEpoch,
+      'imageUrl': null,
+      'metadata': metadata,
+      'name': name,
+      'type': types.RoomType.direct.toShortString(),
+      'updatedAt': DateTime.now().millisecondsSinceEpoch,
+      'userIds': userIds,
+      'userRoles': null,
+    }).select();
+    return types.Room(
+      id: room.first['id'].toString(),
+      name: name,
+      metadata: metadata,
+      type: types.RoomType.direct,
+      users: users,
+    );
+  }
+
   /// Update [types.User] in Supabase to store name and avatar used on
   /// rooms list.
   Future<void> updateUser(types.User user) async {
@@ -408,14 +470,12 @@ class SupabaseChatCore {
             .from(config.roomsTableName)
             .select()
             .eq('userIds', userIds)
-            .limit(1)
             .order('updatedAt', ascending: false)
         : client
             .schema(config.schema)
             .from(config.roomsTableName)
             .select()
-            .eq('userIds', userIds)
-            .limit(1);
+            .eq('userIds', userIds);
 
     collection.then(onData);
     client
