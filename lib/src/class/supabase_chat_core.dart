@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../models/supabase_chat_user.dart';
 import '../util.dart';
 import 'supabase_chat_core_config.dart';
 import 'user_online_status.dart';
@@ -10,20 +11,13 @@ import 'user_online_status.dart';
 /// Provides access to Supabase chat data. Singleton, use
 /// SupabaseChatCore.instance to access methods.
 class SupabaseChatCore {
-  SupabaseChatCore._privateConstructor() {
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      //TODO: Manage state with websocket
-      // supabaseUser = data.session?.user;
-      // _currentUserOnlineStatusChannel = supabaseUser != null
-      //     ? getUserOnlineStatusChannel(supabaseUser!.id)
-      //     : null;
-    });
-  }
+  SupabaseChatCore._privateConstructor();
 
   /// Config to set custom names for users, room and messages tables. Also
   /// see [SupabaseChatCoreConfig].
   SupabaseChatCoreConfig config = const SupabaseChatCoreConfig(
     'chats',
+    'public',
     'rooms',
     'messages',
     'users',
@@ -109,11 +103,12 @@ class SupabaseChatCore {
       client,
       supabaseUser!.id,
       config.usersTableName,
-      config.schema,
+      config.altSchema,
       role: creatorRole.toShortString(),
     );
 
-    final roomUsers = [types.User.fromJson(currentUser)] + users;
+    final chatCurrentUser = SupabaseChatUser.fromJson(currentUser);
+    final roomUsers = [chatCurrentUser.toUser()] + users;
 
     final room =
         await client.schema(config.schema).from(config.roomsTableName).insert({
@@ -182,10 +177,12 @@ class SupabaseChatCore {
       client,
       su.id,
       config.usersTableName,
-      config.schema,
+      config.altSchema,
     );
 
-    final users = [types.User.fromJson(currentUser), otherUser];
+    final chatCurrentUser = SupabaseChatUser.fromJson(currentUser);
+
+    final users = [chatCurrentUser.toUser(), otherUser];
 
     final name = '${otherUser.firstName} ${otherUser.lastName}'.trim();
     // Create new room with sorted user ids array.
@@ -234,7 +231,7 @@ class SupabaseChatCore {
         client,
         roomQuery,
         config.usersTableName,
-        config.schema,
+        config.altSchema,
       ))
           .first;
 
@@ -244,10 +241,10 @@ class SupabaseChatCore {
       client,
       su.id,
       config.usersTableName,
-      config.schema,
+      config.altSchema,
     );
-
-    final users = [types.User.fromJson(currentUser), otherUser];
+    final chatCurrentUser = SupabaseChatUser.fromJson(currentUser);
+    final users = [chatCurrentUser.toUser(), otherUser];
 
     final name = '${otherUser.firstName} ${otherUser.lastName}'.trim();
     // Create new room with sorted user ids array.
@@ -627,9 +624,10 @@ class SupabaseChatCore {
       client,
       supabaseUser!.id,
       config.usersTableName,
-      config.schema,
+      config.altSchema,
     );
-    return types.User.fromJson(currentUser);
+    final chatCurrentUser = SupabaseChatUser.fromJson(currentUser);
+    return chatCurrentUser.toUser();
   }
 
   void setCurrentUser(User? currentUser) {

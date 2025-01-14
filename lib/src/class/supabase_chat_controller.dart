@@ -4,6 +4,7 @@ import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../flutter_supabase_chat_core.dart';
+import '../../models/supabase_chat_user.dart';
 
 /// Provides Supabase chat controller. Instance new class
 /// SupabaseChatController to manage a chat.
@@ -38,13 +39,20 @@ class SupabaseChatController {
       .order('createdAt', ascending: false)
       .range(pageSize * _currentPage, (_currentPage * pageSize) + pageSize);
 
-  void _onData(List<Map<String, dynamic>> data) {
+  Future<void> _onData(List<Map<String, dynamic>> data) async {
     for (var val in data) {
       final author = _room.users.firstWhere(
         (u) => u.id == val['authorId'],
         orElse: () => types.User(id: val['authorId'] as String),
       );
-      val['author'] = author.toJson();
+      final currentUser = await fetchUser(
+        client,
+        author.id,
+        config.usersTableName,
+        config.altSchema,
+      );
+      final chatCurrentUser = SupabaseChatUser.fromJson(currentUser).toUser();
+      val['author'] = chatCurrentUser.toJson();
       val['id'] = val['id'].toString();
       val['roomId'] = val['roomId'].toString();
       final newMessage = types.Message.fromJson(val);
@@ -66,7 +74,7 @@ class SupabaseChatController {
   /// then it will be necessary to call the [loadPreviousMessages] method to get
   /// the next page of messages
   Stream<List<types.Message>> get messages {
-    _query().then((value) => _onData(value));
+    _query().then((value) async => await _onData(value));
     client
         .channel('${config.schema}:${config.messagesTableName}:${_room.id}')
         .onPostgresChanges(
