@@ -11,9 +11,12 @@ environment:
   flutter: '>=3.22.0'
 
 dependencies:
+  build_runner: ^2.4.11
   flutter:
     sdk: flutter
   flutter_chat_types: ^3.6.2
+  json_annotation: ^4.9.0
+  json_serializable: ^6.8.0
   meta: ^1.11.0
   supabase_flutter: ^2.4.0
 

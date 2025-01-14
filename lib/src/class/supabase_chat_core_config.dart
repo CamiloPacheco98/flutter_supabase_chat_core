@@ -9,6 +9,7 @@ import 'package:meta/meta.dart';
 class SupabaseChatCoreConfig {
   const SupabaseChatCoreConfig(
     this.schema,
+    this.altSchema,
     this.roomsTableName,
     this.messagesTableName,
     this.usersTableName,
@@ -17,6 +18,9 @@ class SupabaseChatCoreConfig {
 
   /// Property to set database schema name.
   final String schema;
+
+  /// Property to set database alt schema name.
+  final String altSchema;
 
   /// Property to set rooms table name.
   final String roomsTableName;

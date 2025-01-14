@@ -25,7 +25,7 @@ Future<Map<String, dynamic>> fetchUser(
             .schema(schema)
             .from(usersTableName)
             .select()
-            .eq('id', userId)
+            .eq('supabase_user_id', userId)
             .limit(1))
         .first;
 
