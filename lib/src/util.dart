@@ -79,8 +79,8 @@ Future<types.Room> processRoomRow(
       final otherUser = users.firstWhere(
         (u) => u['id'] != supabaseUser.id,
       );
-      imageUrl = otherUser['imageUrl'] as String?;
-      name = '${otherUser['firstName'] ?? ''} ${otherUser['lastName'] ?? ''}'
+      imageUrl = otherUser['profile_picture_url'] as String?;
+      name = '${otherUser['first_name'] ?? ''} ${otherUser['last_name'] ?? ''}'
           .trim();
     } catch (e) {
       // Do nothing if other user is not found, because he should be found.
