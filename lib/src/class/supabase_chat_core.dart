@@ -166,7 +166,7 @@ class SupabaseChatCore {
         client,
         roomQuery,
         config.usersTableName,
-        config.schema,
+        config.altSchema,
       ))
           .first;
 
@@ -271,7 +271,7 @@ class SupabaseChatCore {
   /// Update [types.User] in Supabase to store name and avatar used on
   /// rooms list.
   Future<void> updateUser(types.User user) async {
-    await client.schema(config.schema).from(config.usersTableName).update({
+    await client.schema(config.altSchema).from(config.usersTableName).update({
       'firstName': user.firstName,
       'imageUrl': user.imageUrl,
       'lastName': user.lastName,
@@ -348,7 +348,7 @@ class SupabaseChatCore {
             fu,
             client,
             config.usersTableName,
-            config.schema,
+            config.altSchema,
           ),
         );
   }
@@ -391,7 +391,7 @@ class SupabaseChatCore {
           fu,
           client,
           config.usersTableName,
-          config.schema,
+          config.altSchema,
         );
         final index = roomsList.indexWhere((room) => room.id == newRoom.id);
         if (index != -1) {
@@ -442,7 +442,7 @@ class SupabaseChatCore {
           su,
           client,
           config.usersTableName,
-          config.schema,
+          config.altSchema,
         );
         final index = roomsList.indexWhere((room) => room.id == newRoom.id);
         if (index != -1) {
@@ -606,7 +606,7 @@ class SupabaseChatCore {
   Stream<List<types.User>> users() {
     if (supabaseUser == null) return const Stream.empty();
     return client
-        .schema(config.schema)
+        .schema(config.altSchema)
         .from(config.usersTableName)
         .stream(primaryKey: ['id']).map(
       (snapshot) => snapshot.fold<List<types.User>>(
