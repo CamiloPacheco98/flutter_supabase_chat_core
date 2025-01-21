@@ -158,6 +158,7 @@ class SupabaseChatCore {
         .select()
         .eq('type', types.RoomType.direct.toShortString())
         .eq('userIds', userIds)
+        .isFilter('metadata', null)
         .limit(1);
     // Check if room already exist.
     if (roomQuery.isNotEmpty) {

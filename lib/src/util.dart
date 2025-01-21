@@ -77,7 +77,7 @@ Future<types.Room> processRoomRow(
   if (type == types.RoomType.direct.toShortString()) {
     try {
       final otherUser = users.firstWhere(
-        (u) => u['id'] != supabaseUser.id,
+        (u) => u['supabase_user_id'] != supabaseUser.id,
       );
       imageUrl = otherUser['profile_picture_url'] as String?;
       name = '${otherUser['first_name'] ?? ''} ${otherUser['last_name'] ?? ''}'
