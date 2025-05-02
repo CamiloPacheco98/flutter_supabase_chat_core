@@ -94,6 +94,7 @@ class SupabaseChatCore {
     types.Role creatorRole = types.Role.admin,
     String? imageUrl,
     Map<String, dynamic>? metadata,
+    bool validateIfRoomExists = false,
     required String name,
     required List<types.User> users,
   }) async {
@@ -109,6 +110,29 @@ class SupabaseChatCore {
 
     final chatCurrentUser = SupabaseChatUser.fromJson(currentUser);
     final roomUsers = [chatCurrentUser.toUser()] + users;
+    if (validateIfRoomExists) {
+      final userIds = roomUsers.map((u) => u.id).toList();
+      final roomQuery = await client
+          .schema(config.schema)
+          .from(config.roomsTableName)
+          .select()
+          .eq('type', types.RoomType.group.toShortString())
+          .eq('userIds', userIds)
+          .isFilter('metadata', null)
+          .limit(1);
+      if (roomQuery.isNotEmpty) {
+        final room = (await processRoomsRows(
+          supabaseUser!,
+          client,
+          roomQuery,
+          config.usersTableName,
+          config.altSchema,
+        ))
+            .first;
+
+        return room;
+      }
+    }
 
     final room =
         await client.schema(config.schema).from(config.roomsTableName).insert({
