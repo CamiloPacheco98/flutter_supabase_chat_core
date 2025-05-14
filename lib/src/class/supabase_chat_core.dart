@@ -112,14 +112,26 @@ class SupabaseChatCore {
     final roomUsers = [chatCurrentUser.toUser()] + users;
     if (validateIfRoomExists) {
       final userIds = roomUsers.map((u) => u.id).toList();
-      final roomQuery = await client
-          .schema(config.schema)
-          .from(config.roomsTableName)
-          .select()
-          .eq('type', types.RoomType.group.toShortString())
-          .eq('userIds', userIds)
-          .isFilter('metadata', null)
-          .limit(1);
+      final PostgrestList roomQuery;
+      if (metadata != null) {
+        roomQuery = await client
+            .schema(config.schema)
+            .from(config.roomsTableName)
+            .select()
+            .eq('type', types.RoomType.group.toShortString())
+            .eq('userIds', userIds)
+            .eq('metadata->>listingId', metadata['listingId'])
+            .limit(1);
+      } else {
+        roomQuery = await client
+            .schema(config.schema)
+            .from(config.roomsTableName)
+            .select()
+            .eq('type', types.RoomType.group.toShortString())
+            .eq('userIds', userIds)
+            .isFilter('metadata', null)
+            .limit(1);
+      }
       if (roomQuery.isNotEmpty) {
         final room = (await processRoomsRows(
           supabaseUser!,
